@@ -1,0 +1,19 @@
+{% extends "base.html" %} 
+{% block title %} Записи любимых авторов {% endblock %}
+
+{% block content %}
+<div class="container">
+    
+    {% include "includes/menu.html" with index=True %}
+
+    <h1>Записи любимых авторов</h1>
+    {% load cache %}
+    {% cache 20 fallow_page %}
+    {% for post in page %}
+        {% include "includes/post_item.html" with post=post %}
+    {% endfor %}
+    {% endcache %}
+</div>
+
+{% include "includes/paginator.html" with items=page paginator=paginator%}
+{% endblock %} 
