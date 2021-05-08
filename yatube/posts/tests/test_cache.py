@@ -26,6 +26,6 @@ class CacheTest(TestCase):
     def test_index_page_cache(self):
         """Главная страница кэшируется"""
         self.guest_client.get(reverse('posts:index'))
-        key = make_template_fragment_key('index_page')
+        key = make_template_fragment_key('index_page', [1])
         value = cache.get(key)
         self.assertIsNotNone(value)

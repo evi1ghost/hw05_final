@@ -5,7 +5,7 @@ import tempfile
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..models import Comment, Group, Post
@@ -14,12 +14,10 @@ from ..models import Comment, Group, Post
 User = get_user_model()
 
 
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(dir=settings.BASE_DIR))
 class PostCreateFormTest(TestCase):
     @staticmethod
     def get_temp_image():
-        # Если использовать изображение с одним именем в разных тестах, то
-        # тесты отказываются работать. Плюс с этот генератор удобен для
-        # проверки возможности редактирования поста
         small_png = (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x02'
                      b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\xf4"\x7f\x8a'
                      b'\x00\x00\x00\x11IDAT\x08\x99c```\xf8\xff\x9f\x81'
@@ -37,7 +35,6 @@ class PostCreateFormTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.user = User.objects.create(username='test_user')
         cls.group = Group.objects.create(
             title='Тестовая группа',
@@ -82,7 +79,7 @@ class PostCreateFormTest(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 author=self.user,
-                text='Test post',
+                text=form_fields['text'],
                 image=f'posts/{image.name}'
             ).exists()
         )
@@ -109,7 +106,7 @@ class PostCreateFormTest(TestCase):
         self.assertTrue(
             PostCreateFormTest.group.posts.filter(
                 author=PostCreateFormTest.user,
-                text='Test post',
+                text=form_fields['text'],
                 image=f'posts/{image.name}'
             ).exists()
         )
@@ -161,7 +158,7 @@ class PostCreateFormTest(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 author=PostCreateFormTest.user,
-                text='Test post',
+                text=form_fields['text'],
                 image=f'posts/{image.name}'
             ).exists()
         )
@@ -229,7 +226,7 @@ class CommentCreateFormTest(TestCase):
         self.assertTrue(
             Comment.objects.filter(
                 author=CommentCreateFormTest.user,
-                text='Test comment'
+                text=form_fields['text']
             ).exists()
         )
 

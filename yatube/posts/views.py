@@ -10,6 +10,13 @@ from .models import Comment, Follow, Group, Post
 User = get_user_model()
 
 
+# Для cache_page не нашел как задать имя ключа (требуется в задании).
+# Плюс если использовать cache_page, то надо добрабатывать тесты, добавляя
+# периодическое удаление кэша, чтобы для формирования страниц использовались
+# шаблоны, а не кэш (ломается 4 теста).
+# P.S.: заметил что кэш в шаблоне работал не корректно (при переходе по
+# страницам index содержимое менялось только после обновления кэша) -
+# исправил.
 def index(request):
     post_list = Post.objects.all()
     paginator = Paginator(post_list, 10)
@@ -51,9 +58,9 @@ def profile(request, username):
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
     following = False
-    if request.user in [
-        follower.user for follower in Follow.objects.filter(author=user)
-    ]:
+    if request.user.is_authenticated and Follow.objects.filter(
+        author=user, user=request.user
+    ).exists():
         following = True
     return render(
         request, 'profile.html',
@@ -63,22 +70,22 @@ def profile(request, username):
 
 def post_view(request, username, post_id):
     post = get_object_or_404(
-        Post.objects.select_related('author').filter(
-            author__username=username, id=post_id
-        ))
+        Post.objects.select_related('author'),
+        author__username=username, id=post_id
+    )
     posts_count = Post.objects.filter(author__username=username).count()
     form = CommentForm()
     comments = Comment.objects.filter(post=post_id)
     following = False
-    if request.user in [
-        follower.user for follower in Follow.objects.filter(
-            author=post.author
-        )
-    ]:
+    if request.user.is_authenticated and Follow.objects.filter(
+        author=post.author, user=request.user
+    ).exists():
         following = True
     return render(
         request, 'post.html', {
             'author': post.author, 'post': post, 'posts_count': posts_count,
+            # Если убрать комментарии из контекста,
+            # то pytest ругается, требует вернуть в зад
             'form': form, 'comments': comments, 'following': following
         }
     )
@@ -102,10 +109,11 @@ def post_edit(request, username, post_id):
 
 @login_required
 def add_comment(request, username, post_id):
+    post = get_object_or_404(Post, id=post_id, author__username=username)
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
-        comment.post_id = post_id
+        comment.post_id = post.id
         comment.author = request.user
         comment.save()
     return redirect('posts:post', username, post_id)
@@ -113,11 +121,12 @@ def add_comment(request, username, post_id):
 
 @login_required
 def follow_index(request):
-    authors = [
-        author.author for author in
-        Follow.objects.filter(user=request.user)
-    ]
-    post_list = Post.objects.filter(author__in=authors)
+    # authors = [
+    #     author.author for author in
+    #     Follow.objects.filter(user=request.user)
+    # ]
+    # post_list = Post.objects.filter(author__in=authors)
+    post_list = Post.objects.filter(author__following__user=request.user)
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
@@ -129,12 +138,11 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
-    author = get_object_or_404(
-        User.objects.prefetch_related('following').filter(username=username)
-    )
-    if request.user not in [
-        follower.user for follower in author.following.all()
-    ] and request.user != author:
+    author = get_object_or_404(User, username=username)
+    if not Follow.objects.filter(
+        user=request.user,
+        author__username=username
+    ).exists() and request.user != author:
         Follow.objects.create(user=request.user, author=author)
     return redirect('posts:profile', username)
 

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.paginator import Page
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..models import Follow, Group, Post
@@ -17,13 +17,12 @@ from ..forms import PostForm
 User = get_user_model()
 
 
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(dir=settings.BASE_DIR))
+# через декоратор проблема с дублирование временной директории ушла
 class PostsPagesTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Переменная cls.list_dir нужна для tearDownClass
-        cls.list_dir = os.listdir(os.getcwd())
-        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test',
@@ -85,12 +84,7 @@ class PostsPagesTest(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
-        # Почему-то создается две временных папки: одна - settings.MEDIA_ROOT,
-        # вторая - дубль первой. Ниже - удаление обеих папок.
-        for path in os.listdir(os.getcwd()):
-            if path not in cls.list_dir:
-                shutil.rmtree(path, ignore_errors=True)
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
         super().tearDownClass()
 
     def test_pages_use_correct_template(self):
@@ -327,14 +321,15 @@ class FollowTest(TestCase):
         self.follower_client.force_login(FollowTest.follower)
 
     def test_authorized_user_can_follow_and_unfollow_authors(self):
-        """
-        Авторизованный пользователь может подписываться на других
-        пользователей и удалять их из подписок
-        """
+        """Авторизованный пользователь может отменять подписки"""
         follow_count = Follow.objects.count()
         alias, kwargs = FollowTest.urls['posts:profile_unfollow']
         self.follower_client.get(reverse(alias, kwargs=kwargs))
         self.assertEqual(Follow.objects.count(), follow_count - 1)
+
+    def test_authorized_user_can_follow_authors(self):
+        """Авторизованный пользователь может оформлять подписки"""
+        follow_count = Follow.objects.count()
         alias, kwargs = FollowTest.urls['posts:profile_follow']
         self.follower_client.get(reverse(alias, kwargs=kwargs))
         self.assertEqual(Follow.objects.count(), follow_count)
@@ -343,10 +338,10 @@ class FollowTest(TestCase):
         """Запись не отображается в ленте неподписанных пользователей"""
         response = self.following_client.get(reverse(
             FollowTest.urls['posts:follow_index'].alias))
-        self.assertEqual(len([post for post in response.context['page']]), 0)
+        self.assertEqual(len(response.context['page']), 0)
 
     def test_followers_see_posts_of_favorite_author(self):
         """Записи пользователя отображаются в ленте подписчиков"""
         response = self.follower_client.get(reverse(
             FollowTest.urls['posts:follow_index'].alias))
-        self.assertGreater(len([post for post in response.context['page']]), 0)
+        self.assertGreater(len(response.context['page']), 0)
