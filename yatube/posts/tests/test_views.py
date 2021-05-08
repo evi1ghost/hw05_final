@@ -1,5 +1,4 @@
 from collections import namedtuple
-import os
 import shutil
 import tempfile
 
