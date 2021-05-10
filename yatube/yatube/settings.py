@@ -36,17 +36,17 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'users',
+    'posts',
+    'about',
+    'sorl.thumbnail',
+    'debug_toolbar',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
-    'posts',
-    'about',
-    'sorl.thumbnail',
-    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
