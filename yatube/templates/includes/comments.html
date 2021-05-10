@@ -21,7 +21,7 @@
         <h5 class="mt-0">
             <a href="{% url 'posts:profile' item.author.username %}"
                name="comment_{{ item.id }}">
-                {{ item.author.username }}
+                @{{ item.author.username }}
             </a>
         </h5>
         <p>{{ item.text | linebreaksbr }}</p>
