@@ -77,8 +77,6 @@ def post_view(request, username, post_id):
     return render(
         request, 'post.html', {
             'author': post.author, 'post': post, 'posts_count': posts_count,
-            # Если убрать комментарии из контекста,
-            # то pytest ругается, требует вернуть в зад
             'form': form, 'comments': comments, 'following': following
         }
     )
@@ -114,11 +112,6 @@ def add_comment(request, username, post_id):
 
 @login_required
 def follow_index(request):
-    # authors = [
-    #     author.author for author in
-    #     Follow.objects.filter(user=request.user)
-    # ]
-    # post_list = Post.objects.filter(author__in=authors)
     post_list = Post.objects.filter(author__following__user=request.user)
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -134,7 +127,7 @@ def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
     if not Follow.objects.filter(
         user=request.user,
-        author__username=username
+        author=author
     ).exists() and request.user != author:
         Follow.objects.create(user=request.user, author=author)
     return redirect('posts:profile', username)
