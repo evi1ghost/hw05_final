@@ -17,7 +17,6 @@ User = get_user_model()
 
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp(dir=settings.BASE_DIR))
-# через декоратор проблема с дублирование временной директории ушла
 class PostsPagesTest(TestCase):
     @classmethod
     def setUpClass(cls):
