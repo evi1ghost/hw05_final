@@ -2,12 +2,6 @@
 
 {% if user.is_authenticated %}
 <div class="card my-4">
-    {% for error in form.errors.values %}
-    <div class="alert alert-danger" role="alert">
-        {{ error }}
-    </div>
-    {% endfor %}
-
     <form action="{% url 'posts:add_comment' post.author.username post.id %}" method="post">
         {% csrf_token %}
         <h5 class="card-header">Добавить комментарий:</h5>

@@ -17,7 +17,9 @@
     {% include 'includes/nav.html' %}
 
     <main>
-        <h1>{% block header %}{% endblock %}</h1>
+        <div class="container">
+            <h1>{% block header %}{% endblock %}</h1>
+        </div>
         {% block content %}
         {% endblock %}
     </main>

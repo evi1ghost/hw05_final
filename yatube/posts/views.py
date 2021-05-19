@@ -61,14 +61,13 @@ def profile(request, username):
     )
 
 
-def post_view(request, username, post_id, form=None):
+def post_view(request, username, post_id):
     post = get_object_or_404(
         Post.objects.select_related('author'),
         author__username=username, id=post_id
     )
     posts_count = Post.objects.filter(author__username=username).count()
-    if form is None:
-        form = CommentForm()
+    form = CommentForm()
     comments = Comment.objects.filter(post=post_id)
     following = False
     if request.user.is_authenticated and Follow.objects.filter(
@@ -108,7 +107,7 @@ def add_comment(request, username, post_id):
         comment.post_id = post.id
         comment.author = request.user
         comment.save()
-    return post_view(request, username, post_id, form)
+    return redirect('posts:post', username, post_id)
 
 
 @login_required
