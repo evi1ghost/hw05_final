@@ -67,3 +67,11 @@ class Follow(models.Model):
 
     def __str__(self):
         return f'Подписчики {self.author}'
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='user_is_not_author'
+            )
+        ]

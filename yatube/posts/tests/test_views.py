@@ -242,6 +242,7 @@ class PaginatorViewsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(username='user')
+        cls.follower = User.objects.create(username='follower')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='tests',
@@ -252,7 +253,7 @@ class PaginatorViewsTest(TestCase):
             author=cls.user,
             group=cls.group
         ) for _ in range(13)])
-        Follow.objects.create(user=cls.user, author=cls.user)
+        Follow.objects.create(user=cls.follower, author=cls.user)
         Values = namedtuple('Values', 'alias kwargs')
         cls.urls = {
             'posts:index': Values('posts:index', None),
@@ -262,18 +263,25 @@ class PaginatorViewsTest(TestCase):
             'posts:profile': Values(
                 'posts:profile', {'username': cls.user.username}
             ),
+        }
+        cls.follow_url = {
             'posts:follow_index': Values('posts:follow_index', None)
         }
 
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(PaginatorViewsTest.user)
+        self.follower_client = Client()
+        self.follower_client.force_login(PaginatorViewsTest.follower)
 
     def test_first_index_page_contain_ten_records(self):
         """Первая страница шаблонов содержит 10 записей"""
         responses = [self.authorized_client.get(reverse(
             alias, kwargs=kwargs))
             for alias, kwargs in PaginatorViewsTest.urls.values()]
+        follow_response = self.follower_client.get(reverse(
+            PaginatorViewsTest.follow_url['posts:follow_index'].alias))
+        responses.append(follow_response)
         for response in responses:
             with self.subTest(response=response.templates[0]):
                 self.assertEqual(
@@ -284,6 +292,10 @@ class PaginatorViewsTest(TestCase):
         responses = [self.authorized_client.get(reverse(
             alias, kwargs=kwargs) + '?page=2')
             for alias, kwargs in PaginatorViewsTest.urls.values()]
+        follow_response = self.follower_client.get(reverse(
+            PaginatorViewsTest.follow_url['posts:follow_index'].alias)
+            + '?page=2')
+        responses.append(follow_response)
         for response in responses:
             with self.subTest(response=response.templates[0]):
                 self.assertEqual(
