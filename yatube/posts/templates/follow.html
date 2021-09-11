@@ -7,6 +7,7 @@
     {% include "includes/menu.html" with index=True %}
 
     <h1>Записи любимых авторов</h1>
+    {% if not page %}<p>Оформите подписку на интересующих авторов, чтобы не пропустить новые записи</p>{% endif %}
     {% for post in page %}
         {% include "includes/post_item.html" with post=post %}
     {% endfor %}
